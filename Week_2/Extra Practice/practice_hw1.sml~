@@ -1,0 +1,81 @@
+(* PRACTICE QUESTIONS *)
+
+(* Q1 *)
+fun alternate (xs : int list) =
+    if null xs then 0
+    else hd xs - alternate (tl xs)
+
+(* Q2 *)
+fun min_max (xs : int list) =
+    if null (tl xs) then (hd xs , hd xs)
+    else
+	let
+	    fun get_min (n1 : int , n2 : int) = if n1 < n2 then n1 else n2
+	    fun get_max (n1 : int , n2 : int) = if n1 > n2 then n1 else n2
+	    val x = hd xs
+	    val tail = min_max (tl xs)
+	in
+	    (get_min (x , #1 tail) , get_max (x, #2 tail) )
+	end
+
+(* Q3 *)
+fun cumsum (xs : int list) =
+    if null xs then [] else     (* 0 element *)
+    if null (tl xs) then [hd xs](* 1 element *)			
+    else
+	let
+	    val tail = tl xs
+	    val sum = hd xs + hd tail
+	in
+	    hd xs :: cumsum (sum :: tl tail)
+	end
+
+(* Q4 *)
+fun greeting (name : string option)=
+    let
+	val input = if isSome name then valOf name else "you"
+    in
+	"Hello there, " ^ input ^ "!"
+    end
+
+	    
+(* Q5 *)
+fun repeat (xs : int list , count : int list) =
+    let
+	val reduce_count = (hd count - 1) :: tl count
+    in
+	if null xs then [] else
+	if hd count = 0 then repeat (tl xs, tl count) else
+	hd xs :: repeat(xs , reduce_count)
+    end
+
+	
+(* Q6 *)
+fun addOpt (o1 : int option , o2 : int option) =
+    if isSome o1 andalso isSome o2
+    then SOME (valOf o1 + valOf o2)
+    else NONE
+
+	     
+(* Q7 *)
+fun addAllOpt (lst : int option list) =
+    if null lst then NONE else
+    let
+	val o1 = hd lst
+	val o2 = addAllOpt (tl lst)
+	
+	fun get_val (os : int option list) =
+	    if null os then 0 else
+	       isSome (hd os)
+	    then valOf (hd os) + get_val (tl os)
+	    else 
+					 
+    in
+	SOME (get_val lst)
+    end 
+	
+
+
+
+
+(* Q8 *)

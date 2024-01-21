@@ -1,0 +1,149 @@
+
+#lang racket
+
+(provide (all-defined-out)) ;; so we can put tests in a second file
+
+;; put your code below
+
+; Q1
+; fn: Num Num Num -> ListOfNum
+; produces lon in ASC order from low to possibly high, with an interval of stride
+(define (sequence low high stride)
+  (cond [(> low high) null]
+        [(= low high) (list low)]
+        [#t (append (list low) (sequence (+ low stride) high stride))]))
+ 
+; Q2
+; ListOfString String -> ListOfString
+; produces list of corresponding strings, each appended with the suffix
+(define (string-append-map xs suffix)
+  (map (lambda (str) (string-append str suffix)) xs))
+  
+
+; Q3
+; ListOfXs Number -> X
+; returns the i-th element of list, i is remainder of n divided by list length
+; (list-nth-mod (list 0 1 2 3 4) 2) -> 2 
+
+(define (list-nth-mod xs n)
+  (cond [(< n 0) (error "list-nth-mod: negative number")]
+        [(null? xs) (error "list-nth-mod: empty list")]
+        [#t (let ([i (remainder n (length xs))])
+              (car (list-tail xs i)))])) ; after first pos elements 
+
+; Q4
+; Pair (Number Thunk) Number -> ListofNumber
+; Returns a list holding the first n values produced by stream, in order
+(define (stream-for-n-steps s n)
+  (letrec ([f (lambda (str count acc)
+                (let ([pr (str)])
+                  (if (= count n)
+                      null
+                      (cons acc (f (cdr pr) (+ count 1) (car pr))))))])
+    (f (cdr (s)) 0 (car (s)))))  
+
+
+; Q5
+; (stream-for-n-steps funny-number-stream 16) (list 1 2 3 4 -5 6 7 8 9 -10 11 12 13 14 -15 16)
+(define funny-number-stream 
+  (letrec ([f (lambda (x) (cons x (lambda ()
+                                    (let* ([nxt-num (+ (abs x) 1)]
+                                           [chk-multiple-five (= (remainder nxt-num 5) 0)])
+                                      (if chk-multiple-five
+                                          (f (- nxt-num))
+                                          (f nxt-num))))))])
+    (lambda () (f 1))))
+
+; Q6
+; returns a Pair (String thunk)
+
+(define dan-then-dog
+  (letrec ([f (lambda (acc)
+                (if (= (remainder acc 2) 0)
+                    (cons "dog.jpg" (lambda () (f (+ acc 1))))
+                    (cons "dan.jpg" (lambda () (f (+ acc 1))))))])
+    (lambda () (f 1))))
+
+; Q7
+; Pair (v thunk) -> Pair (Pair (0 . v) . thunk) 
+; takes in stream s (has v for i-th element, produces another stream with (0 . v) for its i-th element
+
+(define (stream-add-zero s)
+  (lambda () (cons (cons 0 (car (s)))
+                   (stream-add-zero (cdr (s))))))
+
+#;
+; BAD, 1st try 
+(define (stream-add-zero s)
+  (letrec ([f (lambda (s)
+                (let ([pr (s)])
+                  (cons (cons 0 (car pr))
+                        (lambda () (f (cdr pr))))))])
+    (lambda () (f s)))) 
+
+; Q8
+; ListOfXs ListOfYs -> Pair (Pair (X1 . Y1) . thunk)
+; takes two lists xs and ys, returns a stream with pairs e.g., (x1,y1).(x2,y2) ... which cycles forever through the lists
+(define (cycle-lists xs ys)
+  (letrec ([f (lambda (n)
+                (cons (cons (list-nth-mod xs n)
+                            (list-nth-mod ys n))
+                      (lambda () (f (+ n 1)))))])
+    (lambda () (f 0))))
+
+
+; Q9
+; X Vec -> Pair or false
+(define (vector-assoc v vec)
+  (letrec ([f (lambda (pos)
+                (if (< pos (vector-length vec))
+                    (let ([val (vector-ref vec pos)])
+                      (if (and (pair? val) (equal? v (car val)))
+                          val
+                          (f (+ pos 1))))
+                    #f))])
+  (f 0)))
+
+#;
+; BAD, 1st try 
+(define (vector-assoc v vec)
+  (letrec ([f (lambda (pos)
+                (let* ([vlen (vector-length vec)]
+                       [last-pos (- vlen 1)]
+                       [pr (lambda () (vector-ref vec pos))])
+                  (cond [(> pos last-pos) #f]
+                        [(false? (pair? (pr)))(f (+ pos 1))]
+                        [(equal? v (car (pr))) (pr)]
+                        [#t (f (+ pos 1))])))])
+  (f 0)))
+
+; Q10
+; ListOfXs Num -> (v -> Pair or false)
+
+; I got this error "cached-assoc: Full caching implementation (cache slot 1 should be used for the 2 cache miss in a cache of size 3) [incorrect answer]"
+; Can anyone let me know what went wrong?
+
+(define (cached-assoc xs n)
+  (let* ([cache (make-vector n #f)] ; n-element vector cache starts empty (all elements #f).
+           [f (lambda (v)
+                (let ([ans (vector-assoc v cache)] ; first checks the cache for the answer.
+                      [pos 0])
+                  (if ans ans (let ([new-ans (assoc v xs)]) ; if ans not there, function f uses assoc and xs to get the answer
+                                (and new-ans
+                                     (begin (vector-set! cache pos new-ans) ; f adds the pair to the cache before returning.
+                                            (set! pos (remainder (+ pos 1) n)) ; pair is added to cache, starting from position 0, then 1
+                                            new-ans))))))])
+    f)) ; returns a function that takes one argument v
+        ; and returns what (assoc v xs) would return.
+
+
+; Q11
+(define-syntax while-less
+  (syntax-rules (do) 
+    [(while-less e1 do e2)
+     (letrec ([num1 e1]
+              [f (lambda ()(if (< e2 num1)
+                               (f)
+                               #t))])
+       (f))]))
+       
